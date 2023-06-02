@@ -1,5 +1,6 @@
 import disnake
 import discord
+import credentials
 
 from disnake.ext import commands
 
@@ -24,4 +25,4 @@ async def on_message(message):
 async def hello(inter):
     await inter.response.send_message("World")
 
-bot.run('MTExNDI0OTY1NDc5MjYyNjI3Nw.GI0y-I.Fu1t-Z2Y7MJArKCsHKSHRqrsXpMuLZnOyiagac')
+bot.run(credentials.token)
