@@ -47,9 +47,6 @@ async def on_message(message):
             response = gpt.translate(message.content, targetLang)
             await message.channel.send("Translated: ||" + response + "||")
         
-        
-        
-
 
 @bot.slash_command(description="Responds with 'World'")
 async def hello(inter):
@@ -86,6 +83,12 @@ async def set_target_lang(inter, language):
     global targetLang
     targetLang = language
     await inter.response.send_message("Target language has been set to " + language)     
+
+@bot.slash_command(description="Generate Image")
+async def generate_image(inter, prompt):
+    await inter.response.defer()
+    result = gpt.draw(prompt)
+    await inter.followup.send(result)
 
 
 @bot.command(description="Ask GPT")

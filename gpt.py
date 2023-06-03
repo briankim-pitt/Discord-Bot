@@ -123,3 +123,14 @@ def ask(guild, question):
     # saveAnswer(guild, answer)
     return response['choices'][0]['message']['content']
 
+def draw(prompt):
+    
+    response = openai.Image.create(
+        prompt=prompt,
+        n=1,
+        size="1024x1024"
+    )
+    img_url = response['data'][0]['url']
+    print(img_url)
+    return img_url
+
