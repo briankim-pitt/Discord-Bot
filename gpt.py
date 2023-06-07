@@ -2,8 +2,7 @@ import openai
 import credentials 
 import json
 import requests
-import mysql.connector
-from mysql.connector import Error
+
 
 
 openai.api_key = credentials.openai_key
@@ -94,7 +93,7 @@ def romanize(text):
         frequency_penalty=0.0,
         presence_penalty=0.0
     )
-    print(response['choices'][0]['text'].lstrip("\n"))
+    # print(response['choices'][0]['text'].lstrip("\n"))
     return response['choices'][0]['text'].lstrip("\n")
 
 def translate(text, targetLang):
@@ -107,10 +106,10 @@ def translate(text, targetLang):
         frequency_penalty=0.0,
         presence_penalty=0.0
     )
-    print(response['choices'][0]['text'].lstrip("\n"))
+    # print(response['choices'][0]['text'].lstrip("\n"))
     return response['choices'][0]['text'].lstrip("\n")
 
-def ask(guild, question):
+def ask(question):
     # saveQuestion(guild, answer)
     # chat = getChat(guild)
     chat.append({"role": "user", "content": question})

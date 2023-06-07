@@ -3,16 +3,23 @@ import disnake
 import discord
 import credentials
 import gpt
+import flashcards
+import mysql.connector
+from mysql.connector import Error
 
 
 from disnake.ext import commands
 
-users = {}
 
-#settings
+############# global settings #############
 autotranslate = False
 romanize = False
 targetLang = "English"
+
+users = {}
+
+###########################################
+
 
 bot = commands.Bot(
     command_prefix="!",
@@ -35,22 +42,87 @@ async def on_message(message):
         print(text)
         async with message.channel.typing():
             await asyncio.sleep(0.1)
-            response = gpt.ask(guild, text)
+            response = gpt.ask(text)
             await message.channel.send(response)
+    
+    #all non-bot and non-bot-mentioned messages
     else:
         if romanize:
             response = gpt.romanize(message.content)
             await message.channel.send("Romanized: ||" + response + "||")
 
         if users.get(message.author, False):
+            # Define the button's style and label
+            button_style = disnake.ButtonStyle.secondary
+            button_label = 'Save'
+            button_emoji = '📥'
+            # Create the button
+            button = disnake.ui.Button(style=button_style, label=button_label, 
+                                       emoji=button_emoji, custom_id="save")
+            
+       
             global targetLang
             response = gpt.translate(message.content, targetLang)
-            await message.channel.send("Translated: ||" + response + "||")
+            await message.reply("Translated: ||" + response + "||", components=[button])
+            # await bot.wait_for('button_click', check=lambda i: i.component == button)
+       
+@bot.listen("on_button_click")
+async def help_listener(inter: disnake.MessageInteraction):
+    if inter.component.custom_id not in ["save"]:
+        return
+
+    if inter.component.custom_id == "save":
+        user = inter.author 
+        message = extract_text(inter.message.content)
+        #send success message
+        await inter.response.send_message("✅ Translated sentence saved in DMs", ephemeral=True)
+        repliedfrom = await inter.channel.fetch_message(inter.message.reference.message_id)
+        og_msg = repliedfrom.content
+        #send embed to user DM
+        embed = disnake.Embed(
+            title="",
+            description="",
+            color=0x00FFFF,
+            type="rich"            
+        )
+        embed.set_author(
+            name='📥  saved from your conversation'
+        )
+        embed.add_field(
+            name="Original",
+            value=og_msg,
+            inline=True
+        )
+        embed.add_field(
+            name="Translation",
+            value=message,
+            inline=True
+        )
+        
+        card_btn = disnake.ui.Button(style=disnake.ButtonStyle.secondary, label="Make flashcards", 
+                                       emoji="📝", custom_id="make_card")
+        ask_btn = disnake.ui.Button(style=disnake.ButtonStyle.secondary, label="Ask me a question", 
+                                       emoji="🤔", custom_id="ask")
+        
+    
+        await user.send(embed=embed, components=[card_btn,ask_btn]) 
+
+def extract_text(input_string):
+    # Find the index of the start and end markers
+    start_marker = "Translated: ||"
+    end_marker = "||"
+    start_index = input_string.find(start_marker)
+    end_index = input_string.find(end_marker, start_index + len(start_marker))
+
+    if start_index != -1 and end_index != -1:
+        # Extract the text between the markers
+        extracted_text = input_string[start_index + len(start_marker):end_index]
+        return extracted_text.strip()  # Remove leading/trailing whitespace
+    else:
+        return None
         
 
-@bot.slash_command(description="Responds with 'World'")
-async def hello(inter):
-    await inter.response.send_message("World")
+########## SLASH COMMANDS #############
 
 @bot.slash_command(description="Toggle Auto-Translate Globally")
 async def toggle_at_global(inter):
@@ -90,15 +162,44 @@ async def generate_image(inter, prompt):
     result = gpt.draw(prompt)
     await inter.followup.send(result)
 
+################### Database #################################
 
-@bot.command(description="Ask GPT")
-async def ask(ctx, arg):
-    await ctx.channel.send("hi")
-    response = gpt.ask(arg)
-    await ctx.channel.send(response)
+async def saveChat(guild, question):
+    try:
+        connection = mysql.connector.connect(host="localhost",
+                                             database="gpt_bot",
+                                             user="root",
+                                             password="root")
+        mySql_Create_Table_Query = """CREATE TABLE DB_""" + str(guild) + """ (
+        Id int(11) NOT NULL AUTO_INCREMENT,
+        User varchar(250) NOT NULL,
+        Message varchar(5000) NOT NULL,
+        PRIMARY KEY (Id)) """
 
-@bot.command(description="Say Hi")
-async def hi(ctx: commands.Context):
-    print("hello")
-    await ctx.send('hello')
+        cursor = connection.cursor()
+        result = cursor.execute(mySql_Create_Table_Query)
+        print("Table created")
+
+    except mysql.connector.Error as error:
+        print("Failed to create table: {}".format(error))
+
+    finally:
+        if connection.is_connected():
+            table = "DB_" + str(guild)
+            mySql_Insert_Row_Query = "INSERT INTO " + table + " (question) VALUES (%s)"
+            message = {"role": "user", "content": question}
+            mySql_Insert_Row_values = (message)
+            cursor.execute(mySql_Insert_Row_Query, mySql_Insert_Row_values)
+
+            
+
+            print("question stored in db")
+
+            cursor.close()
+
+            connection.close()
+
+####################################################
+
+
 bot.run(credentials.disc_token)
