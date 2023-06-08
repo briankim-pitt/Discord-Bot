@@ -84,7 +84,7 @@ async def help_listener(inter: disnake.MessageInteraction):
     if inter.component.custom_id == "save":
         message = extract_text(inter.message.content)
         #send success message
-        await inter.response.send_message("✅ Translated sentence saved in DMs", ephemeral=True)
+        await inter.response.send_message("✅ Translated message saved in DMs", ephemeral=True)
         repliedfrom = await inter.channel.fetch_message(inter.message.reference.message_id)
         og_msg = repliedfrom.content
         #send embed to user DM
