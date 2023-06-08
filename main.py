@@ -68,11 +68,20 @@ async def on_message(message):
        
 @bot.listen("on_button_click")
 async def help_listener(inter: disnake.MessageInteraction):
-    if inter.component.custom_id not in ["save"]:
+    if inter.component.custom_id not in ["save", "make_card", "ask"]:
         return
-
+    
+    user = inter.author 
+    
+    #DM interactions
+    if inter.component.custom_id == "make_card":
+        await user.send("Making flashcards")
+        
+    if inter.component.custom_id == "ask":
+        await user.send("What would you like to know?")
+    
+    #server interactions
     if inter.component.custom_id == "save":
-        user = inter.author 
         message = extract_text(inter.message.content)
         #send success message
         await inter.response.send_message("✅ Translated sentence saved in DMs", ephemeral=True)
@@ -85,9 +94,9 @@ async def help_listener(inter: disnake.MessageInteraction):
             color=0x00FFFF,
             type="rich"            
         )
-        embed.set_author(
-            name='📥  saved from your conversation'
-        )
+        # embed.set_author(
+        #     name=''
+        # )
         embed.add_field(
             name="Original",
             value=og_msg,
@@ -104,8 +113,8 @@ async def help_listener(inter: disnake.MessageInteraction):
         ask_btn = disnake.ui.Button(style=disnake.ButtonStyle.secondary, label="Ask me a question", 
                                        emoji="🤔", custom_id="ask")
         
-    
-        await user.send(embed=embed, components=[card_btn,ask_btn]) 
+        text = "I saved part of your conversation from " + "**" + inter.guild.name + "** " + "#" + inter.channel.name + " !"
+        await user.send(text, embed=embed, components=[card_btn,ask_btn]) 
 
 def extract_text(input_string):
     # Find the index of the start and end markers
